@@ -3,7 +3,7 @@ MYARCHIVE=archive-$(date +%Y%m%d)-$(date +%HH%MM%SS).tar.bz2
 
 function backup (){
     echo "[INFO] Creating a new backup file: $MYARCHIVE"
-    tar cvfj $MYARCHIVE public_html/
+    tar cvfj "$MYARCHIVE" public_html/
     wait
 }
 
@@ -12,20 +12,20 @@ function verify () {
     echo ""
     echo "[INFO] List archive files for verification"
     echo ""
-    tar -tz -f $MYARCHIVE #> /dev/null
+    tar -tz -f "$MYARCHIVE" #> /dev/null
     wait
 
     echo ""
     echo "[INFO] Verify checksum is accurate"
     echo ""
-    shasum -a 256 -c $MYARCHIVE.sha256
+    shasum -a 256 -c "$MYARCHIVE".sha256
 }
 
 function calculate_SHA256 () {
     echo ""
     echo "[INFO] Calculate the SHA-256 Checksum"
     echo ""
-    shasum -a 256 $MYARCHIVE > $MYARCHIVE.sha256
+    shasum -a 256 "$MYARCHIVE" > "$MYARCHIVE".sha256
 }
 
 function extract () {
@@ -34,7 +34,7 @@ function extract () {
     echo "[INFO] Extracting files to /public_html/BACKUP/public_html/..."
     echo ""
     mkdir ~/public_html/BACKUP
-    tar -xvzf $MYARCHIVE -C ~/public_html/BACKUP
+    tar -xvzf "$MYARCHIVE" -C ~/public_html/BACKUP
     echo ""
     echo ""
     echo "[INFO] PLEASE REMEMBER TO DELETE BACKUP FOLDER WHEN COMPELTE"
@@ -47,7 +47,7 @@ function dropbox () {
     echo ""
     echo "[INFO] Backing up data to dropbox..."
     echo ""
-    ./dropbox/dropbox_uploader.sh upload $MYARCHIVE /
+    ./dropbox/dropbox_uploader.sh upload "$MYARCHIVE" /
 }
 
 function usage () {
@@ -75,25 +75,25 @@ function main () {
     echo "Welcome to your Backup Script"
     echo ""
 
-    if [ -z $1 ]; then
+    if [ -z "$1" ]; then
         usage
         exit 1
     fi
 
-    if [ $1 == "backup" ]; then
+    if [ "$1" == "backup" ]; then
         backup
         calculate_SHA256
-        verify $MYARCHIVE
+        verify "$MYARCHIVE"
     fi
-    if [ $1 == "verify" ]; then
-        verify $2
+    if [ "$1" == "verify" ]; then
+        verify "$2"
     fi
-    if [ $1 == "extract" ]; then
-        extract $2
+    if [ "$1" == "extract" ]; then
+        extract "$2"
     fi
-    if [ $1 == "dropbox" ]; then
-        dropbox $2
+    if [ "$1" == "dropbox" ]; then
+        dropbox "$2"
     fi
 }
 
-main $1 $2
+main "$1" "$2"
