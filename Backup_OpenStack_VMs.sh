@@ -22,9 +22,9 @@ function Create_Images () {
                 break 1
             else
                 echo "[INFO] Creating an image of <$i>, ID of <$ID>"
-                
+# If an error happens in the creation of the image, echo error message and continue to next VM.
                 if ! nova image-create --poll "$ID" "$i"; then
-                    echo "[ERROR] ERROR EXISTED IN CREATION OF IMAGE...."
+                    echo "[ERROR] ERROR IN CREATION OF IMAGE...."
                     continue
                 fi
             fi
@@ -34,59 +34,70 @@ function Create_Images () {
 
 
 function Download_Images () {
-# debug
-#    echo "$GET_IMAGE_NAMEs"
+    echo "$GET_IMAGE_NAMEs"
     for i in $GET_IMAGE_NAMEs; do
         IMAGE_ID=$(openstack image list | grep "$i" | awk 'NR<=1 {print$2}')
-        echo "$IMAGE_ID"
-        echo "[INFO] Downloading $i ..."
-# Try to downloaded an image until it is downloaded, then continue to the next.  
-# This helps with any glance issues/bugs not allowing to download due to errors.
-        until glance image-download --file "$i".raw "$IMAGE_ID"; do
-        echo "[ERROR] Transfer disrupted/error, retrying ($i) in 10 seconds ..."
-        sleep 10
-        done
+        VARS_DEFAULT="y"
+        read -r -n 2 -t 10 -p "Do you wish to try to download this image/snapshot ($i)?" vars
+        vars="${vars:-$VARS_DEFAULT}"
+        case "$vars" in
+            [yY] ) echo "[INFO] Downloading $i ..."
+            until glance image-download --file "$i".raw "$IMAGE_ID"; do
+                echo "[ERROR] Transfer disrupted/error for $i ..."
+                read -r -n 2 -t 10 -p "Do you wish to try to download this image/snapshot ($i) again?" vars2
+                vars2="${vars2:-$VARS_DEFAULT}"
+                case "$vars2" in
+                    [yY] ) sleep 5
+                    ;;
+                    [nN] ) break
+                    ;;
+                esac
+            done
+            ;;
+            [nN] ) continue
+            ;;
+        esac
     done
 }
 
 function usage () {
-  echo ""
-  echo "Missing parameter. Please Enter one of the following options"
-  echo ""
-  echo "Usage: $0 {Any of the options below}"
-  echo ""
-  echo "  Download_Images"
-  echo "  Create_Images"
-  echo ""
-  echo "THESE ARE THE IMAGES THAT WILL BE DOWNLOADED: (Download_Images)"
-  echo "$GET_IMAGE_NAMEs"
-  echo ""
-  echo ""
-  echo "THESE ARE THE VM'S THAT CAN BE SNAPSHOTTED: (Create_Images)"
-  echo "$GET_INSTANCE_NAMEs"
+    echo ""
+    echo "Missing parameter. Please enter one of the following options"
+    echo ""
+    echo "Usage: $0 {Any of the options below}"
+    echo ""
+    echo "  Download_Images"
+    echo "  Create_Images"
+    echo ""		
+    echo "THESE ARE THE IMAGES THAT WILL BE DOWNLOADED: (Download_Images)"		
+    echo "$GET_IMAGE_NAMEs"		
+    echo ""		
+    echo ""		
+    echo "THESE ARE THE VM'S THAT CAN BE SNAPSHOTTED: (Create_Images)"		
+    echo "$GET_INSTANCE_NAMEs"		
 }
 
 function main () {
-  echo ""
-  echo "Welcome to Image Backup Script"
-  echo ""
+    echo ""
+    echo "Welcome to Image Backup Script"
+    echo ""
 
-  if [ -z "$1" ]; then
-    usage
-    exit 1
-  fi
-
-  case $1 in
-     "Download_Images")
-        Download_Images
-        ;;
-     "Create_Images")
-        Create_Images
-        ;;
-     *)
+    if [ -z "$1" ]; then
         usage
         exit 1
-   esac
+    fi
+
+    case $1 in
+    "Download_Images")
+        Download_Images
+        ;;
+    "Create_Images")
+        Create_Images
+        ;;
+    *)
+        usage
+        exit 1
+    esac
 
 }
 
